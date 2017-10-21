@@ -16,7 +16,7 @@ def performance(df):
     print('std:',std)
     print('mean/std:',mean/std,'\n')
 
-def event_01():
+def event_01(df1,df2):
     i = 0
     count = 0
     while(i < len(df1)-2):
@@ -25,7 +25,7 @@ def event_01():
             count = count + 1
             Date_A = df1.index[i+3]
             Date_B = end_of_month(df1.index[i+3],1)
-            df_period = df_bond.loc[(df_bond.index > Date_A) & (df_bond.index <= Date_B)]
+            df_period = df2.loc[(df2.index > Date_A) & (df2.index <= Date_B)]
             performance(df_period)
         i=i+1
     print('times added:',count,'\n')
@@ -36,6 +36,5 @@ df_bond = df_bond_origin.dropna()
 #读入宏观因子的EXCEL
 df = pd.read_excel("macrofactor.xlsx",sheetname=0).set_index('date')
 for name in df.columns:
-    print(name)
-    df1=df[name].dropna()
-    event_01()
+    df_column=df[name].dropna()
+    event_01(df_column,df_bond)
