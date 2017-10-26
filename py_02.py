@@ -113,7 +113,7 @@ def performance(date):
 df_bond_origin = pd.read_excel("bond.xlsx").set_index('date')
 df_bond = df_bond_origin.dropna()
 #读入宏观因子
-df = pd.read_excel("macrofactor.xlsx",sheetname='工业').set_index('date')
+df = pd.read_excel("macrofactor.xlsx",sheetname=0).set_index('date')
 for name in df.columns:
     print('COLUMN:',name)
     df_column=df[name].dropna()    
