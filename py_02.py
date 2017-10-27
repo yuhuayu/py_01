@@ -102,10 +102,7 @@ def performance(date):
         Date_A = t
         Date_B = end_of_month(t,1)
         df_period = df_bond.loc[(df_bond.index > Date_A) & (df_bond.index <= Date_B)]
-        def fuc_09(x):
-            return 100*(x[0]-x[1])
-        df_ret = df_period.rolling(2).apply(fuc_09)
-        ret = df_ret.dropna().mean().get('yield')
+        ret = 100*(df_period.iloc[0]-df_period.iloc[-1]).get('yield')
         retn.append(ret)
         count=count+1
         if ret > 0:
@@ -132,21 +129,22 @@ df_bond_origin = pd.read_excel("bond.xlsx").set_index('date')
 df_bond = df_bond_origin.dropna()
 
 #读入宏观因子
-df = pd.read_excel("macrofactor.xlsx",sheetname=0).set_index('date')
 a=1
-for name in df.columns:
-    print('COLUMN:',name)
-    df_column=df[name].dropna()  
-      
-    events=pd.Series(['Turn_To_Rise','Turn_To_Fall','Continue_To_Rise','Continue_To_Fall','Historical_High','Historical_Low','Low_In_Short_Time','High_In_Short_Time'])
-    for event in events:
-        sheet.write(a,0,name)
-        sheet.write(a,1,event)
-        print('EVENT NAME:',event)
-        dfn = occur(event)
-        time_signal = dfn.loc[dfn==1].index
-        count = dfn.dropna().sum()
-        print(time_signal,'\n')
-        performance(time_signal)
-        a = a+1
+for i in range(8):
+    df = pd.read_excel("macrofactor.xlsx",sheetname=i).set_index('date')
+    for name in df.columns:
+        print('COLUMN:',name)
+        df_column=df[name].dropna()  
+          
+        events=pd.Series(['Turn_To_Rise','Turn_To_Fall','Continue_To_Rise','Continue_To_Fall','Historical_High','Historical_Low','Low_In_Short_Time','High_In_Short_Time'])
+        for event in events:
+            sheet.write(a,0,name)
+            sheet.write(a,1,event)
+            print('EVENT NAME:',event)
+            dfn = occur(event)
+            time_signal = dfn.loc[dfn==1].index
+            count = dfn.dropna().sum()
+            print(time_signal,'\n')
+            performance(time_signal)
+            a = a+1
 file.save('result.xls')
