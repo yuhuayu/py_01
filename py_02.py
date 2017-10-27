@@ -102,7 +102,13 @@ def performance(date):
         Date_A = t
         Date_B = end_of_month(t,1)
         df_period = df_bond.loc[(df_bond.index > Date_A) & (df_bond.index <= Date_B)]
-        ret = 100*(df_period.iloc[0]-df_period.iloc[-1]).get('yield')
+
+        try:
+            ret = 100*(df_period.iloc[0]-df_period.iloc[-1]).get('bondreturn')
+        except:
+            import pdb; pdb.set_trace()
+            
+        ret = 100*(df_period.iloc[0]-df_period.iloc[-1]).get('bondreturn')
         retn.append(ret)
         count=count+1
         if ret > 0:
