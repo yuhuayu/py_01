@@ -12,12 +12,23 @@ from tsutils import *
 
 def occur(name):
     if name == 'Turn_To_Rise':
-        def fuc_01(x):
-            if x[0]>x[1] and x[1]>x[2] and x[2]<x[3]:
+        def fuc_01(x, funarg):
+
+            iterN = 0
+            while iterN < len(x) - 2:
+                if x[iterN + 1] < x[iterN]:
+                    return 0
+                iterN = iterN + 1
+            if x[iterN + 1] > x[iterN]:
                 return 1
             else:
                 return 0
-        dfn = df_column.rolling(4).apply(fuc_01)
+            # import pdb; pdb.set_trace()
+            # if x[0]>x[1] and x[1]>x[2] and x[2]<x[3]:
+            #     return 1
+            # else:
+            #     return 0
+        dfn = df_column.rolling(4).apply(fuc_01, args = (3,))
         return dfn
     
     if name == 'Turn_To_Fall':
