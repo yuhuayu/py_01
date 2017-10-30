@@ -10,52 +10,55 @@ import numpy as np
 import xlwt
 from tsutils import *
 
-def occur(name):
+def occur(name,K1,K2,K3):
     if name == 'Turn_To_Rise':
-        def fuc_01(x, funarg):
-
+        def fuc_01(x):
             iterN = 0
             while iterN < len(x) - 2:
-                if x[iterN + 1] < x[iterN]:
+                if x[iterN] < x[iterN + 1]:
                     return 0
                 iterN = iterN + 1
-            if x[iterN + 1] > x[iterN]:
+            if x[iterN] < x[iterN + 1]:
                 return 1
             else:
                 return 0
-            # import pdb; pdb.set_trace()
-            # if x[0]>x[1] and x[1]>x[2] and x[2]<x[3]:
-            #     return 1
-            # else:
-            #     return 0
-        dfn = df_column.rolling(4).apply(fuc_01, args = (3,))
+        dfn = df_column.rolling(K1).apply(fuc_01)
         return dfn
     
     if name == 'Turn_To_Fall':
         def fuc_02(x):
-            if x[0]<x[1] and x[1]<x[2] and x[2]>x[3]:
+            iterN = 0
+            while iterN < len(x) - 2:
+                if x[iterN] > x[iterN + 1]:
+                    return 0
+                iterN = iterN + 1
+            if x[iterN] > x[iterN + 1]:
                 return 1
             else:
                 return 0
-        dfn = df_column.rolling(4).apply(fuc_02)
+        dfn = df_column.rolling(K1).apply(fuc_02)
         return dfn
     
     if name == 'Continue_To_Rise':
         def fuc_03(x):
-            if x[0]<x[1] and x[1]<x[2] and x[2]<x[3]:
-                return 1
-            else:
-                return 0
-        dfn = df_column.rolling(4).apply(fuc_03)
+            iterN = 0
+            while iterN < len(x) - 1:
+                if x[iterN] > x[iterN + 1]:
+                    return 0
+                iterN = iterN + 1
+            return 1
+        dfn = df_column.rolling(K2).apply(fuc_03)
         return dfn
     
     if name == 'Continue_To_Fall':
         def fuc_04(x):
-            if x[0]>x[1] and x[1]>x[2] and x[2]>x[3]:
-                return 1
-            else:
-                return 0
-        dfn = df_column.rolling(4).apply(fuc_04)
+            iterN = 0
+            while iterN < len(x) - 1:
+                if x[iterN] < x[iterN + 1]:
+                    return 0
+                iterN = iterN + 1
+            return 1
+        dfn = df_column.rolling(K2).apply(fuc_04)
         return dfn
     
     if name == 'Historical_High':
@@ -79,29 +82,29 @@ def occur(name):
         return dfn
     
     if name == 'Low_In_Short_Time':
-        v_mean = df_column.rolling(18).mean()
-        v_std = df_column.rolling(18).std()
+        v_mean = df_column.rolling(K3).mean()
+        v_std = df_column.rolling(K3).std()
         diff = v_mean - 2*v_std
         df1 = df_column - diff.shift(1)
         def fuc_07(x):
-            if x[18] < 0:
+            if x[K3] < 0:
                 return 1
             else:
                 return 0
-        dfn = df1.rolling(19).apply(fuc_07)
+        dfn = df1.rolling(K3+1).apply(fuc_07)
         return dfn
     
     if name == 'High_In_Short_Time':
-        v_mean = df_column.rolling(18).mean()
-        v_std = df_column.rolling(18).std()
+        v_mean = df_column.rolling(K3).mean()
+        v_std = df_column.rolling(K3).std()
         add = v_mean + 2*v_std
         df1 = df_column - add.shift(1)
         def fuc_08(x):
-            if x[18] > 0:
+            if x[K3] > 0:
                 return 1
             else:
                 return 0
-        dfn = df1.rolling(19).apply(fuc_08)
+        dfn = df1.rolling(K3+1).apply(fuc_08)
         return dfn
         
 
@@ -113,13 +116,7 @@ def performance(date):
         Date_A = t
         Date_B = end_of_month(t,1)
         df_period = df_bond.loc[(df_bond.index > Date_A) & (df_bond.index <= Date_B)]
-
-        try:
-            ret = 100*(df_period.iloc[0]-df_period.iloc[-1]).get('bondreturn')
-        except:
-            import pdb; pdb.set_trace()
-            
-        ret = 100*(df_period.iloc[0]-df_period.iloc[-1]).get('bondreturn')
+        ret = 100*(df_period.iloc[0]-df_period.iloc[-1]).get('yield')
         retn.append(ret)
         count=count+1
         if ret > 0:
@@ -134,34 +131,39 @@ def performance(date):
     sheet.write(a,6,IR)
 
 
-#创建输出结果的工作表
-file = xlwt.Workbook()
-sheet = file.add_sheet('result')
-row0 = ['FACTOR','EVENT','COUNT','COUNT_POSITIVE','MEAN','STD','IR']
-for i in range(len(row0)):  
-    sheet.write(0, i, row0[i]) 
-
 #读入十年期国债收益率
 df_bond_origin = pd.read_excel("bond.xlsx").set_index('date')
 df_bond = df_bond_origin.dropna()
 
-#读入宏观因子
-a=1
-for i in range(8):
-    df = pd.read_excel("macrofactor.xlsx",sheetname=i).set_index('date')
-    for name in df.columns:
-        print('COLUMN:',name)
-        df_column=df[name].dropna()  
-          
-        events=pd.Series(['Turn_To_Rise','Turn_To_Fall','Continue_To_Rise','Continue_To_Fall','Historical_High','Historical_Low','Low_In_Short_Time','High_In_Short_Time'])
-        for event in events:
-            sheet.write(a,0,name)
-            sheet.write(a,1,event)
-            print('EVENT NAME:',event)
-            dfn = occur(event)
-            time_signal = dfn.loc[dfn==1].index
-            count = dfn.dropna().sum()
-            print(time_signal,'\n')
-            performance(time_signal)
-            a = a+1
-file.save('result.xls')
+
+#创建输出结果的工作表
+file = xlwt.Workbook()
+for counter in range(0,1):
+    sheet_name = 'sheet%s' % counter
+    
+    sheet = file.add_sheet(sheet_name)
+    row0 = ['FACTOR','EVENT','COUNT','COUNT_POSITIVE','MEAN','STD','IR']
+    for i in range(len(row0)):  
+        sheet.write(0, i, row0[i]) 
+    
+    #读入宏观因子
+    a=1
+    for i in range(8):
+        df = pd.read_excel("macrofactor.xlsx",sheetname=i).set_index('date')
+        for name in df.columns:
+    #        print('COLUMN:',name)
+            df_column=df[name].dropna()  
+              
+    #        events=pd.Series(['Turn_To_Rise','Turn_To_Fall','Continue_To_Rise','Continue_To_Fall','Historical_High','Historical_Low','Low_In_Short_Time','High_In_Short_Time'])
+            events=pd.Series(['Historical_High','Historical_Low'])
+            for event in events:
+                sheet.write(a,0,name)
+                sheet.write(a,1,event)
+    #            print('EVENT NAME:',event)
+                dfn = occur(event,4,4,counter)
+                time_signal = dfn.loc[dfn==1].index
+                count = dfn.dropna().sum()
+    #            print(time_signal,'\n')
+                performance(time_signal)
+                a = a+1
+file.save('result_hist_high_low.xls')
